@@ -1,124 +1,63 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0b1220">
-<title>3×3 魔術方塊求解器</title>
-<style>
-:root{color-scheme:dark;--bg:#09111f;--panel:#131f32;--line:#314157;--text:#f1f5fa;--sub:#a2b1c6;--accent:#58b9fc}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#162640,var(--bg) 75%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;-webkit-tap-highlight-color:transparent}main{max-width:780px;margin:auto;padding:27px 16px calc(35px + env(safe-area-inset-bottom))}h1{font-size:27px;letter-spacing:-.6px;margin:0 0 6px}p{line-height:1.5}.sub{font-size:13px;color:var(--sub);margin:0 0 22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}.sec{font-weight:750;margin:0 0 12px;font-size:16px}.hint{font-size:13px;color:var(--sub);line-height:1.55}.palette{display:flex;justify-content:center;gap:11px;flex-wrap:wrap;padding:5px 0 10px}.paint{width:39px;height:39px;border:3px solid transparent;border-radius:11px;cursor:pointer;position:relative}.paint.active{outline:3px solid var(--accent);outline-offset:3px}.paint span{position:absolute;inset:0;display:grid;place-items:center;color:#111;font-weight:800;font-size:12px;text-shadow:0 0 2px #fff7}.net{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:18px auto;max-width:490px}.face{min-width:0}.face.hidden{visibility:hidden}.face label{font-weight:800;font-size:11px;display:block;text-align:center;color:var(--sub);margin-bottom:4px}.tilegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:4px;background:#05080e;border-radius:8px}.tile{width:100%;aspect-ratio:1;border:1px solid #273247;border-radius:5px;padding:0;cursor:pointer;box-shadow:inset 0 -2px 0 #0003}.tile.center{border:2px solid #02060f;cursor:default;position:relative}.tile.center:after{content:'•';position:absolute;inset:0;display:grid;place-items:center;color:#1118;font-size:18px}.tile:focus-visible,button:focus-visible{outline:3px solid var(--accent)}.buttonrow{display:flex;gap:8px;flex-wrap:wrap}.btn{appearance:none;border:1px solid var(--line);color:var(--text);background:#22324a;border-radius:11px;padding:12px 15px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}.btn.primary{background:#218ce0;border-color:#218ce0;color:white;flex:1}.btn:disabled{opacity:.42;cursor:not-allowed}.status{padding:12px;border-radius:11px;background:#1a293e;font-size:13px;color:#d6e7fb;margin-top:13px;line-height:1.5}.status.error{background:#47242b;color:#ffe0df}.status.success{background:#173b31;color:#c4f4db}.titleline{display:flex;justify-content:space-between;align-items:center;gap:8px}.tag{font-size:12px;color:#cceafa;background:#23445a;padding:5px 10px;border-radius:20px}.formula{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.move{border:1px solid var(--line);border-radius:8px;background:#22334b;padding:8px 10px;min-width:36px;min-height:37px;color:white;font-weight:750;font-size:14px}.move.done{opacity:.4}.move.current{background:#168fe4;border-color:#7fcafe}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.controls .btn{flex:1}.progress{height:6px;background:#354056;border-radius:12px;overflow:hidden;margin:15px 0}.progress>div{height:100%;background:#50beff;width:0;transition:width .15s}.small{font-size:12px;color:var(--sub)}.footer{font-size:12px;color:var(--sub);text-align:center;padding-top:12px;line-height:1.6}#result{display:none}#result.visible{display:block}@media(max-width:380px){main{padding-inline:10px}.panel{padding:12px}.paint{width:36px;height:36px}.net{gap:2px}.tilegrid{gap:2px;padding:3px}.btn{padding:10px 11px}}
-</style>
-</head>
-<body><main>
-<h1>3×3 魔術方塊求解器</h1><p class="sub">iPhone Safari 可用 · Kociemba 兩階段搜尋 · HTM 步數 · v1.2</p>
-<section class="panel"><h2 class="sec">① 輸入六面顏色</h2>
-<p class="hint">選擇色塊，再點選下方格子。中心色固定，請以「白色朝上、綠色朝前」對應展開圖；其餘面的相對位置也必須一致。若你的方塊配色不同，請以中心色的位置為準。</p>
-<div class="palette" id="palette" aria-label="顏色選擇"></div><div id="net" class="net" aria-label="魔術方塊六面展開圖"></div>
-<div class="buttonrow"><button class="btn" id="reset">還原預設</button><button class="btn" id="example">產生測試打亂</button><button class="btn" id="undo">復原上次填色</button></div>
-<div id="status" class="status">準備就緒。可先按「產生測試打亂」測試求解功能。</div></section>
-<section class="panel"><div class="titleline"><h2 class="sec" style="margin:0">② 計算還原方法</h2><span class="tag" id="counter">54 / 54 色格</span></div>
-<p class="hint">快速模式會尋找很短的解，通常約 20–22 步，不保證數學上的絕對最少步數。180° 旋轉計為一步。</p>
-<button class="btn primary" id="solve" style="width:100%;font-size:16px">開始計算還原公式</button></section>
-<section class="panel" id="result"><div class="titleline"><h2 class="sec" style="margin:0">③ 逐步還原</h2><span class="tag" id="steps"></span></div>
-<p class="hint">依照順序旋轉。撇號（'）代表逆時針，2 代表 180°。方向以正面看向該面為準。</p>
-<div id="formula" class="formula"></div><div class="progress"><div id="bar"></div></div>
-<div class="controls"><button class="btn" id="first">⏮ 開頭</button><button class="btn" id="prev">← 上一步</button><button class="btn primary" id="next">下一步 →</button><button class="btn" id="play">▶ 自動</button></div><p id="stepdetail" class="hint"></p>
-<div id="playnet" class="net"></div><button class="btn" id="copy">複製完整公式</button></section>
-<p class="footer">採用 cubejs（MIT License）的 Kociemba 求解器。計算在裝置瀏覽器本機進行，方塊顏色不會上傳至伺服器。首次開啟需要網路下載程式庫。<br>此版本為網頁版，不需安裝 App。</p>
-</main>
-<script>
-(() => {
-'use strict';
-const ORDER=['U','R','F','D','L','B'];
-const MAP={U:'#f8fafc',R:'#ed4148',F:'#26ad61',D:'#ffd63d',L:'#ff9038',B:'#3b76f6'};
-const NAMES={U:'上 U',R:'右 R',F:'前 F',D:'下 D',L:'左 L',B:'後 B'};
-const FACEGRID=[['', 'U','',''],['L','F','R','B'],['','D','','']];
-const SOLVED=ORDER.map(v=>v.repeat(9)).join('');
-let state=SOLVED.split(''),selected='U',history=[],solution=[],sourceState='',step=0,playTimer=null,solverReady=false,loading=false;
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><title>2×2 / 3×3 / 4×4 魔術方塊求解器</title><style>
+:root{color-scheme:dark;--bg:#09111f;--panel:#131f32;--line:#314157;--text:#f1f5fa;--sub:#a2b1c6;--accent:#58b9fc}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#162640,var(--bg) 75%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;-webkit-tap-highlight-color:transparent}main{max-width:780px;margin:auto;padding:27px 16px calc(35px + env(safe-area-inset-bottom))}h1{font-size:27px;letter-spacing:-.6px;margin:0 0 6px}p{line-height:1.5}.sub{font-size:13px;color:var(--sub);margin:0 0 22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}.sec{font-weight:750;margin:0 0 12px;font-size:16px}.hint{font-size:13px;color:var(--sub);line-height:1.55}.palette{display:flex;justify-content:center;gap:11px;flex-wrap:wrap;padding:5px 0 10px}.paint{width:39px;height:39px;border:3px solid transparent;border-radius:11px;cursor:pointer;position:relative}.paint.active{outline:3px solid var(--accent);outline-offset:3px}.paint span{position:absolute;inset:0;display:grid;place-items:center;color:#111;font-weight:800;font-size:12px;text-shadow:0 0 2px #fff7}.net{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:18px auto;max-width:490px}.face{min-width:0}.face.hidden{visibility:hidden}.face label{font-weight:800;font-size:11px;display:block;text-align:center;color:var(--sub);margin-bottom:4px}.tilegrid{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:3px;padding:4px;background:#05080e;border-radius:8px}.tile{width:100%;aspect-ratio:1;border:1px solid #273247;border-radius:5px;padding:0;cursor:pointer;box-shadow:inset 0 -2px 0 #0003}.tile.center{border:2px solid #02060f;cursor:default;position:relative}.tile.center:after{content:'•';position:absolute;inset:0;display:grid;place-items:center;color:#1118;font-size:18px}.tile:focus-visible,button:focus-visible{outline:3px solid var(--accent)}.buttonrow{display:flex;gap:8px;flex-wrap:wrap}.btn{appearance:none;border:1px solid var(--line);color:var(--text);background:#22324a;border-radius:11px;padding:12px 15px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}.btn.primary{background:#218ce0;border-color:#218ce0;color:white;flex:1}.btn:disabled{opacity:.42;cursor:not-allowed}.status{padding:12px;border-radius:11px;background:#1a293e;font-size:13px;color:#d6e7fb;margin-top:13px;line-height:1.5}.status.error{background:#47242b;color:#ffe0df}.status.success{background:#173b31;color:#c4f4db}.titleline{display:flex;justify-content:space-between;align-items:center;gap:8px}.tag{font-size:12px;color:#cceafa;background:#23445a;padding:5px 10px;border-radius:20px}.formula{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.move{border:1px solid var(--line);border-radius:8px;background:#22334b;padding:8px 10px;min-width:36px;min-height:37px;color:white;font-weight:750;font-size:14px}.move.done{opacity:.4}.move.current{background:#168fe4;border-color:#7fcafe}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.controls .btn{flex:1}.progress{height:6px;background:#354056;border-radius:12px;overflow:hidden;margin:15px 0}.progress>div{height:100%;background:#50beff;width:0;transition:width .15s}.small{font-size:12px;color:var(--sub)}.footer{font-size:12px;color:var(--sub);text-align:center;padding-top:12px;line-height:1.6}#result{display:none}#result.visible{display:block}@media(max-width:380px){main{padding-inline:10px}.panel{padding:12px}.paint{width:36px;height:36px}.net{gap:2px}.tilegrid{gap:2px;padding:3px}.btn{padding:10px 11px}}
+
+.modebar{display:flex;gap:8px}.mode{flex:1;min-height:47px}.mode.active{background:#218ce0;border-color:#78c7ff}.notice{padding:11px;background:#3a3042;border-radius:10px;font-size:13px;line-height:1.6;margin-top:10px}.net{max-width:510px}.net[data-size="4"] .tilegrid{gap:2px;padding:3px}.net[data-size="4"] .tile{border-radius:3px}.net[data-size="2"] .tilegrid{gap:4px}.net[data-size="4"] .face label{font-size:10px}
+
+.modebar{display:flex;gap:8px}.mode{flex:1;min-height:47px}.mode.active{background:#218ce0;border-color:#78c7ff}.notice{padding:11px;background:#3a3042;border-radius:10px;font-size:13px;line-height:1.6;margin-top:10px}.net{max-width:510px}.net[data-size="4"] .tilegrid{gap:2px;padding:3px}.net[data-size="4"] .tile{border-radius:3px}.net[data-size="2"] .tilegrid{gap:4px}.net[data-size="4"] .face label{font-size:10px}
+</style></head><body><main>
+<h1>魔術方塊求解器</h1><p class="sub">iPhone / iPad Safari · 2×2 最短解 · 3×3 Kociemba · v2.0</p>
+<section class="panel"><h2 class="sec">選擇魔術方塊階數</h2><div class="modebar"><button class="btn mode" data-n="2">2 × 2</button><button class="btn mode active" data-n="3">3 × 3</button><button class="btn mode" data-n="4">4 × 4</button></div><div id="capability" class="notice"></div></section>
+<section class="panel"><h2 class="sec">① 輸入六面顏色</h2><p class="hint">固定方位：白色 U 在上、綠色 F 在前、紅色 R 在右。六面都從各面的正面看過去輸入；2×2、4×4 的中心也可改色。</p><div class="palette" id="palette"></div><div id="net" class="net" aria-label="六面展開圖"></div><div class="buttonrow"><button class="btn" id="reset">還原預設</button><button class="btn" id="example">產生測試打亂</button><button class="btn" id="undo">復原上次填色</button></div><div id="status" class="status">準備就緒。</div></section>
+<section class="panel"><div class="titleline"><h2 class="sec" style="margin:0">② 計算還原</h2><span class="tag" id="counter"></span></div><p id="method" class="hint"></p><button class="btn primary" id="solve" style="width:100%;font-size:16px">計算還原公式</button><div id="external" class="hint" style="margin-top:12px;display:none">若需解開任意手動輸入的 4×4，可先使用 <a href="https://3dcubesolver.com/" style="color:#77caff" target="_blank" rel="noopener">支援 4×4 降階的專用求解網站</a>；本站尚未實作完整 4×4 降階求解。</div></section>
+<section class="panel" id="result"><div class="titleline"><h2 class="sec" style="margin:0">③ 逐步還原</h2><span class="tag" id="steps"></span></div><p class="hint">R/U/F 等表示右／上／前面順時針，撇號 ' 是逆時針、2 是 180°。4×4 的 Rw 等表示右側兩層同轉。</p><div id="formula" class="formula"></div><div class="progress"><div id="bar"></div></div><div class="controls"><button class="btn" id="first">⏮ 開頭</button><button class="btn" id="prev">← 上一步</button><button class="btn primary" id="next">下一步 →</button><button class="btn" id="play">▶ 自動</button></div><p id="stepdetail" class="hint"></p><div id="playnet" class="net"></div><button class="btn" id="copy">複製公式</button></section>
+<p class="footer">2×2：角塊 IDA* 最短 HTM；3×3：cubejs (MIT) Kociemba；4×4：僅提供由本程式打亂所生成狀態的反向還原，非任意狀態求解。<br>資料保留於本機瀏覽器；3×3 求解引擎首次需網路連線。</p></main><script>
+(()=>{'use strict';
+const ORDER=['U','R','F','D','L','B'],MAP={U:'#f8fafc',R:'#ed4148',F:'#26ad61',D:'#ffd63d',L:'#ff9038',B:'#3b76f6'},NAMES={U:'上 U',R:'右 R',F:'前 F',D:'下 D',L:'左 L',B:'後 B'},FACEGRID=[['','U','',''],['L','F','R','B'],['','D','','']];
 const $=id=>document.getElementById(id);
-function setStatus(t,kind=''){const n=$('status');n.textContent=t;n.className='status '+kind;}
-function count(){let n={};for(const v of state)n[v]=(n[v]||0)+1;$('counter').textContent=ORDER.map(v=>`${v}:${n[v]||0}`).join('  ');return n}
-function renderNet(target,facelets,editable){const elem=$(target);elem.innerHTML='';for(let row=0;row<3;row++)for(let col=0;col<4;col++){
- const f=FACEGRID[row][col];const block=document.createElement('div');block.className='face'+(f?'':' hidden');if(f){const label=document.createElement('label');label.textContent=NAMES[f];block.append(label);const tiles=document.createElement('div');tiles.className='tilegrid';const start=ORDER.indexOf(f)*9;
- for(let i=0;i<9;i++){const tile=document.createElement('button');tile.type='button';tile.className='tile'+(i===4?' center':'');tile.style.background=MAP[facelets[start+i]]||'#666';tile.setAttribute('aria-label',f+' 第 '+(i+1)+' 格');if(!editable)tile.disabled=true;else if(i!==4)tile.onclick=()=>{if(state[start+i]!==selected){history.push([...state]);state[start+i]=selected;invalidate();render();}};tiles.append(tile)}block.append(tiles)}elem.append(block)}}
-function render(){renderNet('net',state,true);count()}
-function renderPalette(){for(const face of ORDER){const b=document.createElement('button');b.type='button';b.className='paint'+(selected===face?' active':'');b.style.background=MAP[face];b.setAttribute('aria-label','選擇'+NAMES[face]+'顏色');b.onclick=()=>{selected=face;renderPalette()};$('palette').append(b)} }
-function invalidate(){stop();solution=[];sourceState='';$('result').classList.remove('visible');try{localStorage.setItem('rubiks-state',state.join(''))}catch{}}
-function restoreState(){try{const s=localStorage.getItem('rubiks-state');if(s&&s.length===54&&[...s].every(x=>ORDER.includes(x))&&ORDER.every((v,i)=>s[i*9+4]===v))state=s.split('')}catch{}}
-function validFacelets(s){if(s.length!==54)throw Error('必須輸入 54 格。');for(const f of ORDER){if(s.split(f).length-1!==9)throw Error('每種顏色都必須剛好有 9 格，請檢查 '+NAMES[f]+'。')}for(let i=0;i<6;i++)if(s[9*i+4]!==ORDER[i])throw Error('中心色不能更改。');}
-function stop(){if(playTimer){clearInterval(playTimer);playTimer=null}$('play').textContent='▶ 自動'}
-function ensureCube(){if(typeof Cube==='undefined')throw Error('尚未載入演算法，請確認網路連線並重新開啟網頁。')}
-function parity(a){let n=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)if(a[i]>a[j])n++;return n%2}
-function fromFacelets(s){
- ensureCube();const cube=Cube.fromString(s),v=cube.toJSON();
- if(cube.asString()!==s||
-    new Set(v.cp).size!==8||new Set(v.ep).size!==12||
-    v.cp.some(x=>!Number.isInteger(x)||x<0||x>7)||
-    v.ep.some(x=>!Number.isInteger(x)||x<0||x>11)||
-    v.co.some(x=>!Number.isInteger(x)||x<0||x>2)||
-    v.eo.some(x=>!Number.isInteger(x)||x<0||x>1)||
-    v.co.reduce((a,b)=>a+b,0)%3!==0||
-    v.eo.reduce((a,b)=>a+b,0)%2!==0||
-    parity(v.cp)!==parity(v.ep))
-   throw Error('這組顏色不是合法的 3×3 方塊狀態。請檢查顏色或拍照確認輸入方向。');
- return cube;
-}
-function configureResult(){stop();$('result').classList.add('visible');$('steps').textContent=solution.length+' 步';$('formula').innerHTML='';solution.forEach((m,i)=>{const b=document.createElement('button');b.className='move';b.textContent=m;b.onclick=()=>{stop();step=i;updateStep()};$('formula').append(b)});step=0;updateStep();$('result').scrollIntoView({behavior:'smooth',block:'start'})}
-function updateStep(){const total=solution.length;$('bar').style.width=(total?step/total*100:100)+'%';[...$('formula').children].forEach((b,i)=>{b.className='move '+(i<step?'done':i===step?'current':'')});$('steps').textContent=step+' / '+total+' 步';$('first').disabled=step===0;$('prev').disabled=step===0;$('next').disabled=step===total;const current=fromFacelets(sourceState);if(step)current.move(solution.slice(0,step).join(' '));renderNet('playnet',current.asString(),false);$('stepdetail').textContent=step===total?'完成！方塊應已全部還原。':`第 ${step+1} 步：${solution[step]}（${NAMES[solution[step]?.[0]]||''}${solution[step]?.endsWith('2')?'旋轉 180°':solution[step]?.endsWith("'")?'逆時針 90°':'順時針 90°'}）`}
-// 在真正求解前嚴格確認兩個不同的 browser scripts 都已載入。
-// 避免舊快取、局部初始化或載入失敗讓 Cube.initSolver 變成 undefined。
-let libPromise=null;
-const LIB_VERSION='1.3.2';
-function solverAvailable(){
- return typeof window.Cube==='function' &&
-   typeof window.Cube.fromString==='function' &&
-   typeof window.Cube.initSolver==='function' &&
-   typeof window.Cube.prototype.solve==='function';
-}
-function loadScript(url){return new Promise((resolve,reject)=>{
- const script=document.createElement('script');
- script.src=url;script.async=false;
- script.onload=()=>resolve();
- script.onerror=()=>{script.remove();reject(Error('網路載入失敗：'+url))};
- document.head.append(script);
-})}
-async function loadLib(){
- if(solverAvailable())return;
- if(libPromise)return libPromise;
- libPromise=(async()=>{
-  let last=null;
-  const mirrors=[
-    'https://cdn.jsdelivr.net/npm/cubejs@'+LIB_VERSION+'/lib/',
-    'https://unpkg.com/cubejs@'+LIB_VERSION+'/lib/'
-  ];
-  for(const base of mirrors){
-   try{
-    // 引入 cube.js，再引入 solve.js；兩者都要在同一個 window.Cube 上。
-    if(typeof window.Cube!=='function'||typeof window.Cube.fromString!=='function')
-       await loadScript(base+'cube.js?v=12');
-    if(!solverAvailable())await loadScript(base+'solve.js?v=12');
-    if(solverAvailable())return;
-    last=new Error('已載入但缺少求解方法（initSolver='+typeof window.Cube?.initSolver+
-      '、solve='+typeof window.Cube?.prototype?.solve+'）');
-   }catch(e){last=e}
-  }
-  throw Error('演算法沒有完整載入。'+(last?' '+last.message:'')+
-    ' 請確認網路，或暫時關閉 Safari 內容阻擋器。');
- })();
- try{await libPromise}catch(e){libPromise=null;throw e}
-}
-async function solve(){if(loading)return;stop();const s=state.join('');try{validFacelets(s);loading=true;$('solve').disabled=true;setStatus('正在載入並檢查方塊…');await loadLib();if(!solverAvailable())throw Error('求解函式尚未載入，請重新整理頁面。');const cube=fromFacelets(s);if(s===SOLVED){solution=[];sourceState=s;configureResult();setStatus('方塊已經還原，0 步。','success');return}
-if(!solverReady){setStatus('首次建立搜尋表中，可能需要數秒；請勿離開頁面。');await new Promise(r=>setTimeout(r,100));if(!solverAvailable())throw Error('演算法不完整，缺少 Cube.initSolver()。');Cube.initSolver();solverReady=true}
-setStatus('正在搜尋短步數還原公式…');await new Promise(r=>setTimeout(r,40));if(typeof cube.solve!=='function')throw Error('求解器缺少 solve() 方法，請重新載入頁面。');const algorithm=cube.solve(22);if(!algorithm)throw Error('在 22 步以內找不到解，請檢查輸入顏色。');const moves=algorithm.trim().split(/\s+/).filter(Boolean);const test=fromFacelets(s);test.move(algorithm);if(test.asString()!==SOLVED)throw Error('驗證失敗：此狀態無法依輸出公式還原。');solution=moves;sourceState=s;configureResult();setStatus('已找到並驗證 '+moves.length+' 步還原公式。','success')
-}catch(e){setStatus(e.message||String(e),'error')}finally{loading=false;$('solve').disabled=false}}
-$('solve').onclick=solve;
-$('reset').onclick=()=>{history.push([...state]);state=SOLVED.split('');invalidate();render();setStatus('已重設為完成狀態。')};
-$('undo').onclick=()=>{if(!history.length){setStatus('目前沒有可復原的填色。');return}state=history.pop();invalidate();render();setStatus('已復原上次操作。')};
-$('example').onclick=async()=>{try{setStatus('準備測試方塊…');await loadLib();let c=new Cube();const fs=['U','R','F','D','L','B'];let moves=[],prev='';for(let i=0;i<24;i++){let f;do{f=fs[Math.floor(Math.random()*6)]}while(f===prev);prev=f;moves.push(f+['',"'",'2'][Math.floor(Math.random()*3)])}c.move(moves.join(' '));history.push([...state]);state=c.asString().split('');invalidate();render();setStatus('已產生合法打亂：'+moves.join(' ')+'。現在可以測試求解。','success')}catch(e){setStatus(e.message,'error')}};
-$('first').onclick=()=>{stop();step=0;updateStep()};$('prev').onclick=()=>{stop();step=Math.max(0,step-1);updateStep()};$('next').onclick=()=>{stop();step=Math.min(solution.length,step+1);updateStep()};
-$('play').onclick=()=>{if(playTimer){stop();return}if(step>=solution.length)step=0;updateStep();$('play').textContent='⏸ 暫停';playTimer=setInterval(()=>{step++;updateStep();if(step>=solution.length)stop()},1100)};
-$('copy').onclick=async()=>{const s=solution.join(' ');try{await navigator.clipboard.writeText(s);$('copy').textContent='✓ 已複製';setTimeout(()=>$('copy').textContent='複製完整公式',1400)}catch{window.prompt('請長按複製公式：',s)}};
-restoreState();renderPalette();render();
-// 在頁面載入後預先啟動程式庫下載；真正的預計算仍在按下求解後執行。
-loadLib().then(()=>setStatus('求解程式庫已就緒，可產生測試打亂並求解。','success')).catch(e=>setStatus(e.message,'error'));
+let n=3,state=[],selected='U',history=[],solution=[],sourceState=[],step=0,playTimer=null,busy=false,solverReady=false,libPromise=null,trace=null;
+const solved=()=>ORDER.map(f=>f.repeat(n*n)).join('').split('');
+function status(msg,type=''){const e=$('status');e.textContent=msg;e.className='status '+type}
+function stop(){if(playTimer)clearInterval(playTimer);playTimer=null;$('play').textContent='▶ 自動'}
+function persist(){try{localStorage.setItem('cubemulti-'+n,state.join(''))}catch{}}
+function invalidate(){stop();solution=[];sourceState=[];$('result').classList.remove('visible');trace=null;persist()}
+function renderNet(id,arr,editable){const el=$(id);el.innerHTML='';el.style.setProperty('--n',n);el.dataset.size=n;for(let row=0;row<3;row++)for(let col=0;col<4;col++){const f=FACEGRID[row][col],block=document.createElement('div');block.className='face'+(f?'':' hidden');if(f){const label=document.createElement('label');label.textContent=NAMES[f];block.append(label);const grid=document.createElement('div');grid.className='tilegrid';const start=ORDER.indexOf(f)*n*n;for(let k=0;k<n*n;k++){const tile=document.createElement('button');tile.type='button';tile.className='tile'+(n===3&&k===4?' center':'');tile.style.background=MAP[arr[start+k]]||'#777';tile.setAttribute('aria-label',f+' 第'+(k+1)+'格');const fixed=n===3&&k===4;if(!editable||fixed)tile.disabled=true;else tile.onclick=()=>{if(state[start+k]!==selected){history.push([...state]);state[start+k]=selected;invalidate();render();}};grid.append(tile)}block.append(grid)}el.append(block)}}
+function renderPalette(){const el=$('palette');el.innerHTML='';for(const f of ORDER){const b=document.createElement('button');b.type='button';b.className='paint'+(selected===f?' active':'');b.style.background=MAP[f];b.setAttribute('aria-label','選擇 '+NAMES[f]);b.onclick=()=>{selected=f;renderPalette()};el.append(b)}}
+function render(){renderNet('net',state,true);$('counter').textContent=state.length+' 格';}
+function choose(size){stop();n=size;history=[];trace=null;solution=[];$('result').classList.remove('visible');state=solved();try{let x=localStorage.getItem('cubemulti-'+n);if(x&&x.length===6*n*n&&[...x].every(c=>ORDER.includes(c))&& (n!==3||ORDER.every((f,i)=>x[i*9+4]===f)))state=x.split('')}catch{}document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',+b.dataset.n===n));const messages={2:'2×2：可手動輸入任意合法狀態。採用角塊搜尋，尋找真正的最少 HTM 步數（上限 11 步）。',3:'3×3：可手動輸入任意合法狀態。採用兩階段演算法尋找短解，但不保證絕對最短。',4:'4×4：支援 96 格輸入及寬轉表示，但尚不能從任意輸入的顏色求解。只有按「產生測試打亂」產生的狀態可透過反向步驟還原；這不是完整 4×4 求解器。'};$('capability').textContent=messages[n];$('method').textContent=messages[n];$('external').style.display=n===4?'block':'none';render();status('已切換為 '+n+'×'+n+'。'+(n===4?'請注意 4×4 求解限制。':'可輸入顏色或產生測試打亂。'));}
+function validateColors(arr){const s=arr.join('');for(const f of ORDER){if(s.split(f).length-1!==n*n)throw Error('每種顏色應有 '+n*n+' 格，請檢查 '+NAMES[f])}if(n===3)for(let i=0;i<6;i++)if(s[i*9+4]!==ORDER[i])throw Error('3×3 的中心色不可改動')}
+// 面向量：每一個貼紙座標都以真實幾何位置與朝向追蹤。
+const FRAMES={U:{normal:[0,1,0],right:[1,0,0],down:[0,0,1]},D:{normal:[0,-1,0],right:[1,0,0],down:[0,0,-1]},F:{normal:[0,0,1],right:[1,0,0],down:[0,-1,0]},B:{normal:[0,0,-1],right:[-1,0,0],down:[0,-1,0]},R:{normal:[1,0,0],right:[0,0,-1],down:[0,-1,0]},L:{normal:[-1,0,0],right:[0,0,1],down:[0,-1,0]}};
+let geomCache={};function geometry(size){if(geomCache[size])return geomCache[size];const coords=[],byKey=new Map(),h=size-1;for(let fi=0;fi<6;fi++){let f=FRAMES[ORDER[fi]];for(let r=0;r<size;r++)for(let c=0;c<size;c++){let p=[0,1,2].map(a=>f.normal[a]*h+f.right[a]*(2*c-h)+f.down[a]*(2*r-h)),v=[...f.normal],k=p.join(',')+'|'+v.join(',');coords.push({p,v});byKey.set(k,coords.length-1)}}return geomCache[size]={coords,byKey}}
+function rotateVec(v,axis,sgn){let [x,y,z]=v;if(axis===0)return [x,-sgn*z,sgn*y];if(axis===1)return [sgn*z,y,-sgn*x];return [-sgn*y,sgn*x,z]}
+function applyMove(arr,token,size=n){const m=/^([URFDLB])(w)?([2']?)$/.exec(token);if(!m)throw Error('不支援旋轉：'+token);const f=m[1],wide=!!m[2],suffix=m[3],frame=FRAMES[f],axis=frame.normal.findIndex(x=>x!==0),faceSign=frame.normal[axis],count=suffix==='2'?2:1,angle=(suffix==="'"?1:-1)*faceSign;let cur=arr;const {coords,byKey}=geometry(size),h=size-1;for(let turn=0;turn<count;turn++){let out=cur.slice();for(let i=0;i<coords.length;i++){const {p,v}=coords[i];const depth=p[axis]*faceSign;if(depth<(wide?h-2:h))continue;const q=rotateVec(p,axis,angle),w=rotateVec(v,axis,angle),j=byKey.get(q.join(',')+'|'+w.join(','));if(j===undefined)throw Error('內部幾何旋轉錯誤');out[j]=cur[i]}cur=out}return cur}
+function applyAlg(a,moves,size=n){let x=a.slice();for(const m of moves)x=applyMove(x,m,size);return x}
+function invert(m){return m.endsWith('2')?m:m.endsWith("'")?m.slice(0,-1):m+"'"}
+function setResult(moves,src,kind){solution=moves;sourceState=src.slice();$('result').classList.add('visible');$('formula').innerHTML='';moves.forEach((m,i)=>{let b=document.createElement('button');b.className='move';b.textContent=m;b.onclick=()=>{stop();step=i;updateStep()};$('formula').append(b)});step=0;updateStep();status(kind,'success');$('result').scrollIntoView({behavior:'smooth',block:'start'})}
+function updateStep(){let cnt=solution.length;$('bar').style.width=(cnt?step/cnt*100:100)+'%';[...$('formula').children].forEach((b,i)=>b.className='move '+(i<step?'done':i===step?'current':''));$('steps').textContent=step+' / '+cnt+' 步';$('first').disabled=step===0;$('prev').disabled=step===0;$('next').disabled=step===cnt;renderNet('playnet',applyAlg(sourceState,solution.slice(0,step)),false);$('stepdetail').textContent=step===cnt?'完成，顏色已全部還原。':'第 '+(step+1)+' 步：'+solution[step]}
+async function loadScript(url){return new Promise((res,rej)=>{const script=document.createElement('script');script.src=url;script.onload=res;script.onerror=()=>{script.remove();rej(Error('載入失敗 '+url))};document.head.append(script)})}
+const canParse=()=>typeof window.Cube==='function'&&typeof Cube.fromString==='function';const canSolve=()=>canParse()&&typeof Cube.initSolver==='function'&&typeof Cube.prototype.solve==='function';
+async function loadLibrary(full){if(full?canSolve():canParse())return;if(!libPromise)libPromise=(async()=>{let err;for(const base of ['https://cdn.jsdelivr.net/npm/cubejs@1.3.2/lib/','https://unpkg.com/cubejs@1.3.2/lib/']){try{if(!canParse())await loadScript(base+'cube.js');if(!canSolve())await loadScript(base+'solve.js');if(canSolve())return}catch(e){err=e}}throw Error('求解引擎未完整載入。'+(err?err.message:''))})();try{await libPromise}catch(e){libPromise=null;throw e}if(full&&!canSolve())throw Error('求解方法尚未載入，請重新整理')}
+function parity(a){let s=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)s+=(a[i]>a[j]);return s%2}
+function cornerCube(arr){const s=solved3().split('');const index=[0,2,6,8];for(let face=0;face<6;face++)for(let r=0;r<2;r++)for(let c=0;c<2;c++)s[face*9+index[r*2+c]]=arr[face*4+r*2+c];return Cube.fromString(s.join(''))}
+function solved3(){return ORDER.map(f=>f.repeat(9)).join('')}
+function validateCorner(c){let v=c.toJSON(),cp=v.cp,co=v.co;if(cp.length!==8||new Set(cp).size!==8||cp.some(x=>!Number.isInteger(x)||x<0||x>7)||co.some(x=>!Number.isInteger(x)||x<0||x>2)||co.reduce((s,x)=>s+x,0)%3!==0)throw Error('2×2 角塊狀態不合法：請檢查每一個角的三色組合及方向');return {cp,co}}
+function validate3(c,s){const v=c.toJSON();if(c.asString()!==s||new Set(v.cp).size!==8||new Set(v.ep).size!==12||v.cp.some(x=>x<0||x>7)||v.ep.some(x=>x<0||x>11)||v.co.reduce((a,b)=>a+b,0)%3!==0||v.eo.reduce((a,b)=>a+b,0)%2!==0||parity(v.cp)!==parity(v.ep))throw Error('3×3 顏色狀態不合法；請檢查角塊、邊塊或輸入方向')}
+// 2×2 真正最短步數 IDA*: 角塊排列 8! + 朝向 3^7 的獨立 BFS 修剪表。
+let solver2=null;
+function permIdx(p){let x=0;for(let i=0;i<8;i++){let v=0;for(let j=i+1;j<8;j++)if(p[j]<p[i])v++;x=x*(8-i)+v}return x}
+function idxPerm(idx){const available=[0,1,2,3,4,5,6,7],p=[];const fact=[1,1,2,6,24,120,720,5040];for(let i=0;i<8;i++){const f=fact[7-i],digit=Math.floor(idx/f);idx%=f;p.push(available.splice(digit,1)[0])}return p}
+function oriIdx(a){let x=0;for(let i=0;i<7;i++)x=x*3+a[i];return x}
+function idxOri(index){let a=Array(8).fill(0),sum=0;for(let i=6;i>=0;i--){a[i]=index%3;sum+=a[i];index=Math.floor(index/3)}a[7]=(3-sum%3)%3;return a}
+function build2(){if(solver2)return solver2;if(!canParse())throw Error('尚未載入角塊模型');const names=ORDER.flatMap(f=>[f,f+'2',f+"'"]),trans=names.map(m=>{let x=new Cube();x.move(m);const v=x.toJSON();return {cp:v.cp,co:v.co}});const pm=Array.from({length:40320},()=>new Uint16Array(18)),om=Array.from({length:2187},()=>new Uint16Array(18));for(let id=0;id<40320;id++){let p=idxPerm(id);for(let j=0;j<18;j++)pm[id][j]=permIdx(trans[j].cp.map(k=>p[k]))}for(let id=0;id<2187;id++){let o=idxOri(id);for(let j=0;j<18;j++)om[id][j]=oriIdx(trans[j].cp.map((k,i)=>(o[k]+trans[j].co[i])%3))}function bfs(matrix){const distances=new Int8Array(matrix.length).fill(-1),queue=new Uint16Array(matrix.length);distances[0]=0;queue[0]=0;let head=0,tail=1;while(head<tail){const v=queue[head++];for(const t of matrix[v])if(distances[t]===-1){distances[t]=distances[v]+1;queue[tail++]=t}}if(tail!==matrix.length)throw Error('搜尋表初始化失敗 '+tail+'/'+matrix.length);return distances}solver2={pm,om,pd:bfs(pm),od:bfs(om),names};return solver2}
+async function solve2(arr){await loadLibrary(false);const v=validateCorner(cornerCube(arr));if(arr.join('')===solved().join(''))return [];status('正在建立 2×2 最短路徑搜尋表…');await new Promise(r=>setTimeout(r,30));const t=build2(),startP=permIdx(v.cp),startO=oriIdx(v.co),path=[],opp=[3,4,5,0,1,2];let budget=25000000,calls=0;function dfs(p,o,depth,last){if(p===0&&o===0)return true;if(depth===0||Math.max(t.pd[p],t.od[o])>depth)return false;for(let k=0;k<18;k++){const face=(k/3)|0;if(face===last||last>=0&&face===opp[last]&&face<last)continue;const p2=t.pm[p][k],o2=t.om[o][k];if(Math.max(t.pd[p2],t.od[o2])>depth-1)continue;path.push(t.names[k]);if(++calls>budget)throw Error('搜尋量已達裝置上限，請再試一次');if(dfs(p2,o2,depth-1,face))return true;path.pop()}return false}
+for(let depth=Math.max(t.pd[startP],t.od[startO]);depth<=11;depth++){status('2×2 正在搜尋真正最短解：'+depth+' 步…');await new Promise(r=>setTimeout(r,10));if(dfs(startP,startO,depth,-1)){const check=applyAlg(arr,path);if(check.join('')!==solved().join(''))throw Error('最短解驗證失敗：角塊旋轉與介面方向不一致');return path.slice()}}throw Error('2×2 在 11 步內找不到合法解，請檢查輸入')}
+async function solve3(arr){await loadLibrary(true);const s=arr.join(''),cube=Cube.fromString(s);validate3(cube,s);if(s===solved().join(''))return [];if(!solverReady){status('首次建立 3×3 求解搜尋表…');await new Promise(r=>setTimeout(r,30));Cube.initSolver();solverReady=true}status('正在搜尋 3×3 短步數解…');await new Promise(r=>setTimeout(r,30));const moves=cube.solve(22).trim().split(/\s+/).filter(Boolean);if(!moves.length)throw Error('求解器沒有找到可用步驟');if(applyAlg(arr,moves).join('')!==solved().join(''))throw Error('演算法驗證失敗：請勿依此公式旋轉，回報此錯誤');return moves}
+async function solve(){if(busy)return;busy=true;$('solve').disabled=true;stop();const initial=state.slice();try{validateColors(initial);let moves;if(n===2)moves=await solve2(initial);else if(n===3)moves=await solve3(initial);else{if(initial.join('')===solved().join(''))moves=[];else if(trace&&trace.final===initial.join(''))moves=trace.moves.slice().reverse().map(invert);else throw Error('4×4 目前只可求解由本站「產生測試打亂」所產生且未再手動改色的狀態。任意 4×4 顏色輸入需要獨立的降階演算法，目前尚未支援。');if(applyAlg(initial,moves).join('')!==solved().join(''))throw Error('4×4 反向還原驗證失敗')}
+if(state.join('')!==initial.join('')||state.length!==initial.length)throw Error('計算中方塊已改變，請重新計算');setResult(moves,initial,'已找到並驗證 '+moves.length+' 步還原公式。'+(n===4?'（這是打亂記錄的反向序列，不代表最短解）':''))}catch(e){status(e.message||String(e),'error')}finally{busy=false;$('solve').disabled=false}}
+function scramble(){let faces=ORDER,wide=n===4,sequence=[],last='';for(let i=0;i<(n===2?12:n===3?24:40);i++){let f;do{f=faces[Math.random()*6|0]}while(f===last);last=f;let w=wide&&Math.random()<.5?'w':'';sequence.push(f+w+['',"'",'2'][Math.random()*3|0])}history.push(state.slice());state=applyAlg(solved(),sequence);invalidate();if(n===4)trace={final:state.join(''),moves:sequence};render();status('已產生 '+n+'×'+n+' 合法打亂：'+sequence.join(' '),'success')}
+$('solve').onclick=solve;$('reset').onclick=()=>{history.push(state.slice());state=solved();invalidate();render();status('已重設為完成狀態')};$('undo').onclick=()=>{if(!history.length){status('沒有可以復原的填色');return}state=history.pop();invalidate();render();status('已復原一次操作')};$('example').onclick=scramble;
+$('first').onclick=()=>{stop();step=0;updateStep()};$('prev').onclick=()=>{stop();step=Math.max(0,step-1);updateStep()};$('next').onclick=()=>{stop();step=Math.min(solution.length,step+1);updateStep()};$('play').onclick=()=>{if(playTimer){stop();return}if(step>=solution.length)step=0;updateStep();$('play').textContent='⏸ 暫停';playTimer=setInterval(()=>{step++;updateStep();if(step>=solution.length)stop()},1000)};
+$('copy').onclick=async()=>{const x=solution.join(' ');try{await navigator.clipboard.writeText(x);status('公式已複製','success')}catch{window.prompt('請長按複製：',x)}};
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>choose(+b.dataset.n));renderPalette();choose(3);
 })();
-</script>
-</body></html>
+</script></body></html>
